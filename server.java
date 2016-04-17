@@ -126,8 +126,28 @@ public class server {
 					}
 					
 					else if (clientAction == 4){
-						socket.close();
-						return;
+						String clientHost = is.readUTF();
+						int clientPort = Integer.parseInt(is.readUTF());
+						for(int i=0; i < RFCslist.length; i++){
+							if(RFCslist[i] == null){
+								os.writeByte(0);
+								break;
+							}
+							else if(RFCslist[i].hostname.equals(clientHost) && RFCslist[i].portnum == clientPort){
+								os.writeByte(1);
+								os.writeUTF(Integer.toString(RFCslist[i].number));
+								RFCslist[i].number = -1;
+								os.writeUTF(RFCslist[i].title);
+								RFCslist[i].title = "-1";
+								RFCslist[i].hostname = "-1";
+								RFCslist[i].portnum = -1;
+								os.flush();
+							}
+							else{
+								continue;
+							}
+						}
+						break;
 					}
 					
 					else{

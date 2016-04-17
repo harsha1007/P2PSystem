@@ -50,10 +50,10 @@ public class client1 {
 				System.out.println("404 not found");
 			}
 			else{
-				System.out.println("LOOKUP RFC " + findRFC + " P2P-CI/1.0");
+				System.out.println("\n" + "LOOKUP RFC " + findRFC + " P2P-CI/1.0");
 				System.out.println("Host: " + is.readUTF());
 				System.out.println("Port: " + is.readUTF());
-				System.out.println("Title: " + is.readUTF());
+				System.out.println("Title: " + is.readUTF() + "\n");
 			}
 		}
 		catch (UnknownHostException e) {
@@ -93,6 +93,18 @@ public class client1 {
 	public static void QUIT(DataOutputStream os, DataInputStream is, String clienthost, int clientport){
 		try{
 			os.writeByte(4);
+			os.writeUTF(clienthost);
+			os.writeUTF(Integer.toString(clientport));
+			os.flush();
+			while(true){
+				if(is.readByte() == 1){
+					System.out.println("The RFC " + is.readUTF() + ": " + is.readUTF() + " is deleted.");
+				}
+				else{
+					System.out.println("Finished deleting all RFCs of this client on server pool");
+					break;
+				}
+			}
 		}
 		catch (UnknownHostException e) {
 	        System.err.println("Trying to connect to unknown host: " + e);
@@ -152,12 +164,12 @@ public class client1 {
 				// Run the loop to select one of the options and perform the selected operation.
 				
 				while(true){
-					System.out.println("Select one of the following: \n" + "1. Find an RFC" + "\n" + "2. List all the RFCs" + "\n" + "3. Get a file from a peer" + "\n" + "4. Exit the connection");
+					System.out.println("\n" + "Select one of the following: \n" + "1. Find an RFC" + "\n" + "2. List all the RFCs" + "\n" + "3. Get a file from a peer" + "\n" + "4. Exit the connection");
+					System.out.print("Your selection: ");
 					int selection = in.nextInt();
-					System.out.println("You have selected: " + selection);
 					
 					if(selection == 1){
-						System.out.println("\n" + "Enter the RFC that you want to find: ");
+						System.out.print("\n" + "Enter the RFC that you want to find: ");
 						int findRFC = in.nextInt();
 						LOOKUP(os, is, findRFC);
 					}
@@ -169,10 +181,12 @@ public class client1 {
 					
 					else if(selection == 4){
 						QUIT(os, is, clienthost, clientport);
+						break;
 					}
 					
 					else{
-						break;
+						System.out.println("Please enter an option from the list given.");
+						continue;
 					}
 				}
 				
