@@ -27,16 +27,16 @@ public class server {
            System.out.println(e);
         }   
 		
-// Create a socket object for the CIServer to listen for the peer connections. Each connected peer will have a separate thread running on the server. 
-	while (true) {
-		try {
-			   peerSocket = CIServer.accept();
-			   new ServerThread(peerSocket).start();
+		// Create a socket object for the CIServer to listen for the peer connections. Each connected peer will have a separate thread running on the server. 
+		while (true) {
+			try {
+				   peerSocket = CIServer.accept();
+				   new ServerThread(peerSocket).start();
 			}   
-		catch (IOException e) {
-			   System.out.println(e);
+			catch (IOException e) {
+				   System.out.println(e);
 			}
-	}
+		}
     }
 	
 	public static class ServerThread extends Thread{
@@ -65,34 +65,66 @@ public class server {
 					
 					// If a new client joins the pool, its RFC details are added.
 					if (clientAction == 0){
+						// Reading the request from client.
+						String addnumber = is.readUTF();
+						String addhost = is.readUTF();
+						String addport = is.readUTF();
+						String addtitle = is.readUTF();
+						// Printing the request to server screen;
+						System.out.println("\n" + addnumber);
+						System.out.println(addhost);
+						System.out.println(addport);
+						System.out.println(addtitle);
+						// Storing the values in RFC pool.
 						RFCslist[counter] = new RFCDetails();
-						RFCslist[counter].title = is.readUTF();
-						RFCslist[counter].number = Integer.parseInt(is.readUTF());
-						RFCslist[counter].hostname = is.readUTF();
-						RFCslist[counter].portnum = Integer.parseInt(is.readUTF());
-						System.out.println("\n" + "ADD RFC " + RFCslist[counter].number +" P2P-CI/1.0");
-						System.out.println("Host: " + RFCslist[counter].hostname);
-						System.out.println("Port: " + RFCslist[counter].portnum);
-						System.out.println("Title: " + RFCslist[counter].title);
+						RFCslist[counter].number = Integer.parseInt(addnumber.substring(8, 11));
+						RFCslist[counter].hostname = addhost.substring(6);
+						RFCslist[counter].portnum = Integer.parseInt(addport.substring(6));
+						RFCslist[counter].title = addtitle.substring(7);
+						os.writeUTF("P2P-CI/1.0 200 OK");
+						os.writeUTF("RFC " + RFCslist[counter].number + " " + RFCslist[counter].title + " " + RFCslist[counter].hostname + " " + RFCslist[counter].portnum);
 						counter++;
 					}
 					
 					// The LookUp operation initiated by a client. Positive/Negative reply based on the success/failure of lookup.
 					else if (clientAction == 1){
-						int findRFC = Integer.parseInt(is.readUTF());
+						// Reading LOOKUP request from client.
+						String lookupnumber = is.readUTF();
+						String lookuphost = is.readUTF();
+						String lookupport = is.readUTF();
+						String lookuptitle = is.readUTF();
+						// Printing LOOKUP request to the server screen.
+						System.out.println("\n" + lookupnumber);
+						System.out.println(lookuphost);
+						System.out.println(lookupport);
+						System.out.println(lookuptitle);
+						int findRFC = Integer.parseInt(lookupnumber.substring(11, 14));
+						boolean RFCfound = false;
+						int hostcount = 0;
 						for(int i=0; i < RFCslist.length; i++){
 							if(RFCslist[i] == null){
-								os.writeByte(0);
-								os.flush();
-								break;
+								if(RFCfound == false){
+									os.writeByte(0);
+									os.writeUTF("P2P-CI/1.0 404 NOT FOUND");
+									os.flush();
+									break;
+								}
+								else{
+									os.writeByte(2);
+									os.flush();
+									break;
+								}
 							}
 							else if(RFCslist[i].number == findRFC){
+								RFCfound = true;
 								os.writeByte(1);
-								os.writeUTF(RFCslist[i].hostname);
-								os.writeUTF(Integer.toString(RFCslist[i].portnum));
-								os.writeUTF(RFCslist[i].title);
+								if(hostcount == 0){
+									os.writeUTF("P2P-CI/1.0 200 OK");
+								}
+								os.writeUTF("RFC " + RFCslist[i].number + " " + RFCslist[i].title + " " + RFCslist[i].hostname + " " + RFCslist[i].portnum);
 								os.flush();
-								break;
+								hostcount++;
+								continue;
 							}
 							else{
 								continue;

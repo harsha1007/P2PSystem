@@ -16,12 +16,17 @@ public class client2 {
 		try{
 			for(int i=0; i<RFCclist.length; i++){
 				if(RFCclist[i] != null){
+					// Send ADD request to the server.
 					os.writeByte(0);
-					os.writeUTF(RFCclist[i].title);
-					os.writeUTF(Integer.toString(RFCclist[i].number));
-					os.writeUTF(RFCclist[i].hostname);
-					os.writeUTF(Integer.toString(RFCclist[i].portnum));
+					os.writeUTF("ADD RFC " + Integer.toString(RFCclist[i].number) + " P2P-CI/1.0");
+					os.writeUTF("Host: " + RFCclist[i].hostname);
+					os.writeUTF("Port: " + Integer.toString(RFCclist[i].portnum));
+					os.writeUTF("Title: " + RFCclist[i].title);
 					os.flush();
+					
+					//Print the status message received from server.
+					System.out.println("\n" + is.readUTF());
+					System.out.println(is.readUTF());
 				}
 				else{
 					break;
@@ -36,24 +41,34 @@ public class client2 {
 		}
 	}
 	
-	public static void LOOKUP(DataOutputStream os, DataInputStream is, int findRFC){
+	public static void LOOKUP(DataOutputStream os, DataInputStream is, int findRFC, String findTitle, String clienthost, int clientport){
 		try{
 			// Send the RFC number to server for lookup.
 			os.writeByte(1);
-			os.writeUTF(Integer.toString(findRFC));
+			os.writeUTF("LOOKUP RFC " + Integer.toString(findRFC) + " P2P-CI/1.0");
+			os.writeUTF("Host: " + clienthost);
+			os.writeUTF("Port: " + Integer.toString(clientport));
+			os.writeUTF("Title: " + findTitle);
 			os.flush();
+			int hostcount = 0;
 			
 			//Wait on server reply which may be positive or negative.
-			byte serverMessage = is.readByte();
-			
-			if(serverMessage == 0){
-				System.out.println("404 not found");
-			}
-			else{
-				System.out.println("\n" + "LOOKUP RFC " + findRFC + " P2P-CI/1.0");
-				System.out.println("Host: " + is.readUTF());
-				System.out.println("Port: " + is.readUTF());
-				System.out.println("Title: " + is.readUTF() + "\n");
+			while(true){
+				byte serverMessage = is.readByte();
+				
+				if(serverMessage == 0 || serverMessage == 2){
+					if(serverMessage == 0){
+						System.out.println(is.readUTF());
+					}
+					break;
+				}
+				else{
+					if(hostcount == 0){
+						System.out.println("\n" + is.readUTF());
+					}
+					System.out.println(is.readUTF());
+					continue;
+				}
 			}
 		}
 		catch (UnknownHostException e) {
@@ -88,6 +103,28 @@ public class client2 {
 	    catch (IOException e) {
 	        System.err.println("IOException:  " + e);
 		}
+	}
+	
+	public static void GET(DataOutputStream os, DataInputStream is, int getRFC, String getHost, int getPort){
+		FileOutputStream fos;
+		BufferedOutputStream bos;
+		String os_name =System.getProperty("os.name");
+		Socket getClient;
+		
+		try{
+			// Initialize a connection to the peer with RFC.
+			getClient = new Socket(getHost,getPort);
+			os = new DataOutputStream(getClient.getOutputStream());
+			is = new DataInputStream(getClient.getInputStream());
+			// Send the RFC number to the peer with the file.
+			os.writeUTF(Integer.toString(getRFC));
+		}
+		catch (UnknownHostException e) {
+	        System.err.println("Trying to connect to unknown host: " + e);
+	    }
+		catch (IOException e) {
+	        System.err.println("Couldn't get I/O for the connection to: " + e);
+	    }
 	}
 	
 	public static void QUIT(DataOutputStream os, DataInputStream is, String clienthost, int clientport){
@@ -133,13 +170,13 @@ public class client2 {
 		//Populating the RFC details of the client manually.
 		ClientRFC[] RFCclist = new ClientRFC[100];
 		RFCclist[0] = new ClientRFC();
-		RFCclist[0].title = "Implementing Sockets 2";
-		RFCclist[0].number = 333;
+		RFCclist[0].title = "Implementing Sockets";
+		RFCclist[0].number = 222;
 		RFCclist[0].hostname = clienthost;
 		RFCclist[0].portnum = clientport;
 		RFCclist[1] = new ClientRFC();
-		RFCclist[1].title = "Java Socket Programming 2";
-		RFCclist[1].number = 444;
+		RFCclist[1].title = "Java Socket Programming";
+		RFCclist[1].number = 111;
 		RFCclist[1].hostname = clienthost; 
 		RFCclist[1].portnum = clientport;
 		
@@ -155,6 +192,9 @@ public class client2 {
         } catch (IOException e) {
             System.err.println("Couldn't get I/O for the connection to: 7734");
         }
+		
+		ServerThread peerThread = new ServerThread(RFCclist, clienthost, clientport);
+		peerThread.start();
 
     if (p2pSocket != null && os != null && is != null) {
             try {
@@ -171,12 +211,25 @@ public class client2 {
 					if(selection == 1){
 						System.out.print("\n" + "Enter the RFC that you want to find: ");
 						int findRFC = in.nextInt();
-						LOOKUP(os, is, findRFC);
+						System.out.print("\n" + "Enter the title of RFC that you want to find: ");
+						in.nextLine();
+						String findTitle = in.nextLine();
+						LOOKUP(os, is, findRFC, findTitle, clienthost, clientport);
 					}
 					
 					else if(selection == 2){
 						System.out.println("\n" + "Listing all the RFCs currently in server pool" + "\n");
 						LIST(os, is, clienthost, clientport);
+					}
+					
+					else if(selection == 3){
+						System.out.print("\n" + "Enter the RFC number that you want to get: ");
+						int getRFC = in.nextInt();
+						System.out.print("\n" + "Enter the Hostname to connect: ");
+						String getHost = in.next();
+						System.out.print("\n" + "Enter the Port number to connect: ");
+						int getPort = in.nextInt();
+						GET(os, is, getRFC, getHost, getPort);
 					}
 					
 					else if(selection == 4){
@@ -199,5 +252,57 @@ public class client2 {
                 System.err.println("IOException:  " + e);
             }
         }
-    }           
+    }
+
+	public static class ServerThread extends Thread{
+		
+		// Intializing socket variable for the connected peer as a separate thread.
+		ServerSocket peerServer;
+		Socket peerClient;
+		ClientRFC[] RFClist;
+		
+		// Assigning the connected peerSocket to the socket variable in this thread in the constructor.
+		public ServerThread(ClientRFC[] RFCslist, String clienthost, int clientport){
+			try{
+				peerServer = new ServerSocket(clientport);
+				RFClist = RFCslist;
+			}
+			catch (IOException e) {
+				System.out.println("In creation of server socket :");
+				System.out.println(e);
+			}
+		}
+		
+		// Main implementation after assigning socket variable.
+		public void run(){
+			DataInputStream sis;
+			DataOutputStream sos;
+			try{
+				while(true){
+					peerClient = peerServer.accept();
+					sis = new DataInputStream(peerClient.getInputStream());
+					sos = new DataOutputStream(peerClient.getOutputStream());
+					int RFCnum = Integer.parseInt(sis.readUTF());
+					//String fileToTransfer = Directory+"\\"+queryRFCNumber+Extension;
+					// Check if the file requested is present at the client.
+					boolean filePresent = false;
+					for(int i=0; i < RFClist.length; i++){
+						if(RFClist[i] == null){
+							break;
+						}
+						else if(RFClist[i].number == RFCnum){
+							filePresent = true;
+							break;
+						}
+						else{
+							continue;
+						}
+					}
+				}
+			}
+			catch(IOException e){
+				System.out.println("IOException:  "+e);
+			}
+		}
+	}
 }
