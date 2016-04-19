@@ -77,7 +77,7 @@ public class server {
 						System.out.println(addtitle);
 						// Storing the values in RFC pool.
 						RFCslist[counter] = new RFCDetails();
-						RFCslist[counter].number = Integer.parseInt(addnumber.substring(8, 11));
+						RFCslist[counter].number = Integer.parseInt(addnumber.substring(8, addnumber.indexOf(" ", 8)));
 						RFCslist[counter].hostname = addhost.substring(6);
 						RFCslist[counter].portnum = Integer.parseInt(addport.substring(6));
 						RFCslist[counter].title = addtitle.substring(7);
@@ -98,7 +98,7 @@ public class server {
 						System.out.println(lookuphost);
 						System.out.println(lookupport);
 						System.out.println(lookuptitle);
-						int findRFC = Integer.parseInt(lookupnumber.substring(11, 14));
+						int findRFC = Integer.parseInt(lookupnumber.substring(11, lookupnumber.indexOf(" ", 11)));
 						boolean RFCfound = false;
 						int hostcount = 0;
 						for(int i=0; i < RFCslist.length; i++){

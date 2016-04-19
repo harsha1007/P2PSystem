@@ -350,7 +350,7 @@ public class client2 {
 					sos = new DataOutputStream(peerClient.getOutputStream());
 					String getRFC = sis.readUTF();
 					System.out.println("\n" + getRFC);
-					int RFCnum = Integer.parseInt(getRFC.substring(8, 11));
+					int RFCnum = Integer.parseInt(getRFC.substring(8, getRFC.indexOf(" ", 8)));
 					String fileToTransfer = directoryPath+"\\"+RFCnum+extension;
 					// Check if the file requested is present at the client.
 					boolean filePresent = false;
