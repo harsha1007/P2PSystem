@@ -176,6 +176,9 @@ public class client2 {
 				bos.write(mybytearray, 0 , bytesRead);
 				bos.flush();
 				System.out.println("File " + fileTransferred + " downloaded (" + bytesRead + " bytes read)");
+				gos.close();
+				gis.close();
+				getClient.close();
 			}
 			else{
 				System.out.println("Inside failure");
@@ -398,6 +401,9 @@ public class client2 {
 					}
 				}
 			}
+			catch (UnknownHostException e) {
+                System.err.println("Trying to connect to unknown host: " + e);
+            }
 			catch(IOException e){
 				System.out.println("IOException:  "+e);
 			}
