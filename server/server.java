@@ -134,9 +134,12 @@ public class server {
 					
 					// Listing all RFCs in pool upon client request.
 					else if (clientAction == 2){
-						System.out.println("\n" + "LIST ALL P2P-CI/1.0");
-						System.out.println("Host: " + is.readUTF());
-						System.out.println("Port: " + is.readUTF());
+						System.out.println("\n" + is.readUTF());
+						String listhost = is.readUTF();
+						String listport = is.readUTF();
+						System.out.println("Host: " + listhost);
+						System.out.println("Port: " + listport);
+						int hostcount = 0;
 						
 						for(int i=0; i < RFCslist.length; i++){
 							if(RFCslist[i] == null){
@@ -145,11 +148,12 @@ public class server {
 							}
 							else if(RFCslist[i].number != -1 ){
 								os.writeByte(1);
-								os.writeUTF(Integer.toString(RFCslist[i].number));
-								os.writeUTF(RFCslist[i].title);
-								os.writeUTF(RFCslist[i].hostname);
-								os.writeUTF(Integer.toString(RFCslist[i].portnum));
+								if(hostcount == 0){
+									os.writeUTF("P2P-CI/1.0 200 OK");
+								}
+								os.writeUTF("RFC " + RFCslist[i].number + " " + RFCslist[i].title + " " + RFCslist[i].hostname + " " + RFCslist[i].portnum);
 								os.flush();
+								hostcount++;
 							}
 							else{
 								continue;

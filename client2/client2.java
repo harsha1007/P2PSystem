@@ -1,9 +1,14 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.nio.file.Paths;
+import java.text.*;
 
 public class client2 {
 	@SuppressWarnings("deprecation")
+	
+	static String directoryPath;
+	static int RFCcounter = 2;
 	
 	public static class ClientRFC{
 		String title;
@@ -58,7 +63,7 @@ public class client2 {
 				
 				if(serverMessage == 0 || serverMessage == 2){
 					if(serverMessage == 0){
-						System.out.println(is.readUTF());
+						System.out.println("\n" + is.readUTF());
 					}
 					break;
 				}
@@ -67,6 +72,7 @@ public class client2 {
 						System.out.println("\n" + is.readUTF());
 					}
 					System.out.println(is.readUTF());
+					hostcount++;
 					continue;
 				}
 			}
@@ -83,14 +89,20 @@ public class client2 {
 		try{
 			// Send a request to server to send all RFC details.
 			os.writeByte(2);
-			os.writeUTF(clienthost);
-			os.writeUTF(Integer.toString(clientport));
+			os.writeUTF("LIST ALL P2P-CI/1.0");
+			os.writeUTF("Host: " + clienthost);
+			os.writeUTF("Port: " + Integer.toString(clientport));
 			os.flush();
-			//Reply from server with all the RFCs that are in pool.
+			int hostcount = 0;
 			
+			//Reply from server with all the RFCs that are in pool.
 			while(true){
 				if(is.readByte() == 1){
-					System.out.println("The RFC number: " + is.readUTF() + " with title: " + is.readUTF() + " is at host: " + is.readUTF() + " and port: " + is.readUTF());
+					if(hostcount == 0){
+						System.out.println("\n" + is.readUTF());
+					}
+					System.out.println(is.readUTF());
+					hostcount++;
 				}
 				else{
 					break;
@@ -105,19 +117,69 @@ public class client2 {
 		}
 	}
 	
-	public static void GET(DataOutputStream os, DataInputStream is, int getRFC, String getHost, int getPort){
+	public static void GET(DataOutputStream os, DataInputStream is, int getRFC, String getHost, int getPort, String clienthost, int clientport, ClientRFC[] RFCclist){
 		FileOutputStream fos;
 		BufferedOutputStream bos;
+		DataOutputStream gos;
+		DataInputStream gis;
 		String os_name =System.getProperty("os.name");
 		Socket getClient;
+		String extension = ".txt";
+		String fileTransferred = directoryPath+"\\"+getRFC+extension;
 		
 		try{
 			// Initialize a connection to the peer with RFC.
 			getClient = new Socket(getHost,getPort);
-			os = new DataOutputStream(getClient.getOutputStream());
-			is = new DataInputStream(getClient.getInputStream());
+			gos = new DataOutputStream(getClient.getOutputStream());
+			gis = new DataInputStream(getClient.getInputStream());
 			// Send the RFC number to the peer with the file.
-			os.writeUTF(Integer.toString(getRFC));
+			gos.writeUTF("GET RFC " + Integer.toString(getRFC) + " P2P-CI/1.0");
+			
+			String statusMsg = gis.readUTF();
+			int status = Integer.parseInt(statusMsg.substring(11, 14));
+			System.out.println("\n" + statusMsg);
+			if(status == 200){
+				System.out.println(gis.readUTF()); // Printing Current Date
+				System.out.println(gis.readUTF()); // Printing OS Name
+				System.out.println(gis.readUTF()); // Printing Last Modified Date
+				String lengthOfContent = gis.readUTF();
+				System.out.println(lengthOfContent); // Printing Content Length
+				System.out.println(gis.readUTF()); // Printing Content Type
+				String getTitle = gis.readUTF();
+				System.out.println(getTitle); // Printing Title
+				
+				// Adding the RFC details in the list at client side.
+				RFCclist[RFCcounter] = new ClientRFC();
+				RFCclist[RFCcounter].number = getRFC;
+				RFCclist[RFCcounter].hostname = clienthost;
+				RFCclist[RFCcounter].portnum = clientport;
+				RFCclist[RFCcounter].title = getTitle;
+				
+				// Adding the RFC at the server pool.
+				// Send ADD request to the server.
+				os.writeByte(0);
+				os.writeUTF("ADD RFC " + Integer.toString(RFCclist[RFCcounter].number) + " P2P-CI/1.0");
+				os.writeUTF("Host: " + RFCclist[RFCcounter].hostname);
+				os.writeUTF("Port: " + Integer.toString(RFCclist[RFCcounter].portnum));
+				os.writeUTF("Title: " + RFCclist[RFCcounter].title);
+				os.flush();
+				
+				//Print the status message received from server.
+				System.out.println("\n" + is.readUTF());
+				System.out.println(is.readUTF());
+				
+				byte [] mybytearray  = new byte [Integer.parseInt(lengthOfContent.substring(16))];
+				InputStream iss = getClient.getInputStream();
+				fos = new FileOutputStream(fileTransferred);
+				bos = new BufferedOutputStream(fos);
+				int bytesRead = iss.read(mybytearray,0,mybytearray.length);
+				bos.write(mybytearray, 0 , bytesRead);
+				bos.flush();
+				System.out.println("File " + fileTransferred + " downloaded (" + bytesRead + " bytes read)");
+			}
+			else{
+				System.out.println("Inside failure");
+			}
 		}
 		catch (UnknownHostException e) {
 	        System.err.println("Trying to connect to unknown host: " + e);
@@ -153,6 +215,7 @@ public class client2 {
 	
 	
     public static void main(String[] args) {
+		directoryPath = Paths.get(".").toAbsolutePath().normalize().toString();
 		// Initializing data stream operations
 		Scanner in = new Scanner(System.in);	
 		String clienthost = "";
@@ -170,13 +233,13 @@ public class client2 {
 		//Populating the RFC details of the client manually.
 		ClientRFC[] RFCclist = new ClientRFC[100];
 		RFCclist[0] = new ClientRFC();
-		RFCclist[0].title = "Implementing Sockets";
-		RFCclist[0].number = 222;
+		RFCclist[0].title = "Message Switching Protocol";
+		RFCclist[0].number = 333;
 		RFCclist[0].hostname = clienthost;
 		RFCclist[0].portnum = clientport;
 		RFCclist[1] = new ClientRFC();
-		RFCclist[1].title = "Java Socket Programming";
-		RFCclist[1].number = 111;
+		RFCclist[1].title = "Mail Protocol";
+		RFCclist[1].number = 555;
 		RFCclist[1].hostname = clienthost; 
 		RFCclist[1].portnum = clientport;
 		
@@ -218,7 +281,6 @@ public class client2 {
 					}
 					
 					else if(selection == 2){
-						System.out.println("\n" + "Listing all the RFCs currently in server pool" + "\n");
 						LIST(os, is, clienthost, clientport);
 					}
 					
@@ -229,7 +291,7 @@ public class client2 {
 						String getHost = in.next();
 						System.out.print("\n" + "Enter the Port number to connect: ");
 						int getPort = in.nextInt();
-						GET(os, is, getRFC, getHost, getPort);
+						GET(os, is, getRFC, getHost, getPort, clienthost, clientport, RFCclist);
 					}
 					
 					else if(selection == 4){
@@ -260,6 +322,7 @@ public class client2 {
 		ServerSocket peerServer;
 		Socket peerClient;
 		ClientRFC[] RFClist;
+		String extension = ".txt";
 		
 		// Assigning the connected peerSocket to the socket variable in this thread in the constructor.
 		public ServerThread(ClientRFC[] RFCslist, String clienthost, int clientport){
@@ -268,7 +331,7 @@ public class client2 {
 				RFClist = RFCslist;
 			}
 			catch (IOException e) {
-				System.out.println("In creation of server socket :");
+				System.out.println("In creation of server socket: ");
 				System.out.println(e);
 			}
 		}
@@ -277,26 +340,61 @@ public class client2 {
 		public void run(){
 			DataInputStream sis;
 			DataOutputStream sos;
+			FileInputStream fis;
+			BufferedInputStream bis;
+			OutputStream os;
 			try{
 				while(true){
 					peerClient = peerServer.accept();
 					sis = new DataInputStream(peerClient.getInputStream());
 					sos = new DataOutputStream(peerClient.getOutputStream());
-					int RFCnum = Integer.parseInt(sis.readUTF());
-					//String fileToTransfer = Directory+"\\"+queryRFCNumber+Extension;
+					String getRFC = sis.readUTF();
+					System.out.println("\n" + getRFC);
+					int RFCnum = Integer.parseInt(getRFC.substring(8, 11));
+					String fileToTransfer = directoryPath+"\\"+RFCnum+extension;
 					// Check if the file requested is present at the client.
 					boolean filePresent = false;
+					int index = 0;
 					for(int i=0; i < RFClist.length; i++){
 						if(RFClist[i] == null){
 							break;
 						}
 						else if(RFClist[i].number == RFCnum){
 							filePresent = true;
+							index = i;
 							break;
 						}
 						else{
 							continue;
 						}
+					}
+					if(filePresent == true){
+						File myFile = new File(fileToTransfer);
+						Date currentDate = new Date();
+						SimpleDateFormat formattedDate = new SimpleDateFormat();
+						formattedDate = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z");
+						String DateString = formattedDate.format(currentDate);
+						sos.writeUTF("P2P-CI/1.0 200 OK ");
+						sos.writeUTF("Date: "+DateString);
+						String os_name =System.getProperty("os.name");
+						sos.writeUTF("OS: "+ os_name);
+						sos.writeUTF("Last-Modified: "+ formattedDate.format(myFile.lastModified()));
+						byte [] byteArray  = new byte [(int)myFile.length()];
+						sos.writeUTF("Content-Length: "+ byteArray.length);
+						sos.writeUTF("Content-Type: text");
+						sos.writeUTF(RFClist[index].title);
+						
+						//Sending the file to the client peer.
+						fis = new FileInputStream(myFile);
+						bis = new BufferedInputStream(fis);
+						bis.read(byteArray,0,byteArray.length);
+						os = peerClient.getOutputStream();
+						os.write(byteArray,0,byteArray.length);
+						os.flush();
+						
+					}
+					else{
+						sos.writeUTF("P2P-CI/1.0 404 NOT FOUND");
 					}
 				}
 			}
