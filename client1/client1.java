@@ -125,7 +125,7 @@ public class client1 {
 		String os_name =System.getProperty("os.name");
 		Socket getClient;
 		String extension = ".txt";
-		String fileTransferred = directoryPath+"\\"+getRFC+extension;
+		String fileTransferred = directoryPath+"/"+getRFC+extension;
 		
 		try{
 			// Initialize a connection to the peer with RFC.
@@ -224,6 +224,8 @@ public class client1 {
 		String clienthost = "";
 		System.out.println("Enter the port number at which this client should run: ");
 		int clientport = in.nextInt();
+		System.out.println("Enter the Hostname of the server");
+		String serverIP = in.next();
 		// Resolving the hostname of the client.
 		try{
 			clienthost = InetAddress.getLocalHost().getHostName();
@@ -250,7 +252,7 @@ public class client1 {
         DataOutputStream os = null;
         DataInputStream is = null;
         try {
-            p2pSocket = new Socket("localhost", 7734);
+            p2pSocket = new Socket(serverIP, 7734);
             os = new DataOutputStream(p2pSocket.getOutputStream());
             is = new DataInputStream(p2pSocket.getInputStream());
         } catch (UnknownHostException e) {
@@ -354,7 +356,7 @@ public class client1 {
 					String getRFC = sis.readUTF();
 					System.out.println("\n" + getRFC);
 					int RFCnum = Integer.parseInt(getRFC.substring(8, getRFC.indexOf(" ", 8)));
-					String fileToTransfer = directoryPath+"\\"+RFCnum+extension;
+					String fileToTransfer = directoryPath+"/"+RFCnum+extension;
 					// Check if the file requested is present at the client.
 					boolean filePresent = false;
 					int index = 0;
