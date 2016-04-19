@@ -183,16 +183,11 @@ public class server {
 								continue;
 							}
 						}
-						break;
 					}
-					
 					else{
-						break;
+						continue;
 					}
 				}
-				os.close();
-	            is.close();
-				socket.close();
 			}
 			catch (IOException e) {
 			   System.out.println(e);
